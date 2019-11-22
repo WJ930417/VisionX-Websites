@@ -1,0 +1,1442 @@
+<template>
+  <div>
+    <div class="title">
+      <span>{{ $t('gpu.myMachineTitle') }}：{{ rentNumber }}</span>
+      <div v-if="!isBinding && bindMail" class="binding">
+        <span class="bindingInfo"
+          >{{ $t('my_machine_binding_email') }}:{{ bindMail }}</span
+        >
+        <el-button class="ml10" size="mini" plain @click="openDlgMail(false)">{{
+          $t('gpu.modifyMail')
+        }}</el-button>
+      </div>
+      <div v-else-if="!isBinding" class="bind">
+        <el-button size="small" plain @click="openDlgMail(true)">{{
+          $t('gpu.bindMail')
+        }}</el-button>
+        <span class="bindInfo ml10" v-html="$t('gpu.bindMailInfo')"></span>
+      </div>
+      <div v-else-if="isBinding">
+        <span v-if="isBinding" class="bindInfo">{{
+          $t('my_machine_vocing')
+        }}</span>
+      </div>
+    </div>
+    <div
+      v-if="res_body.content.length > 0"
+      v-for="(item, index) in res_body.content"
+      class="border-content"
+    >
+      <div class="tools-head">
+        <div class="l-wrap">
+          <!--          <span class="tools-title">{{$t('gpu.mcStatusTitle')}}：<b>{{$t('gpu.machineOnLine')}}</b></span>-->
+          <el-button
+            v-if="item.orderData.have_continue_pay"
+            plain
+            class="is-link"
+            @click="
+              pushContinuePayDetail(
+                item.orderData.order_id,
+                item.orderData.order_is_over
+              )
+            "
+            >{{ $t('click_to_view_continue_pay') }}</el-button
+          >
+          <span v-if="item.orderData.have_continue_pay" class="tools-title"
+            >&nbsp; &nbsp; &nbsp; &nbsp;</span
+          >
+          <span
+            v-if="
+              item.orderData.order_is_cancer || item.orderData.order_is_over
+            "
+            class="tools-title"
+          ></span>
+          <span v-else class="tools-title"
+            >{{ $t('gpu.remainingTime') }}：{{
+              $secToDate(item.orderData.rest_time_rent * 60, 'DHM')
+            }}</span
+          >
+        </div>
+        <div class="r-wrap">
+          <!--<span v-if="item.rent_success">正在使用中</span>
+          <span
+            v-if="Math.floor((new Date().getTime() - item.orderData.milli_create_order_time)/60000) <= 15"
+          >等待支付</span>
+          <span v-else-if="item.orderData.order_is_cancer">未支付</span>
+          <span v-if="item.orderData.order_is_cancer === false" class="ml10">
+            剩余支付时间：{{
+            15 - Math.floor((new Date().getTime() - item.orderData.milli_create_order_time)/60000)
+            }}分钟
+          </span>-->
+          <span
+            v-if="
+              item.orderData.order_is_over && item.orderData.order_isnormal_over
+            "
+            >{{ $t('my_machine_isnormal_over') }}</span
+          >
+          <span
+            v-else-if="
+              item.orderData.order_is_over &&
+                item.orderData.order_isnormal_over === false
+            "
+            >{{ $t('my_machine_nonormal_over') }}</span
+          >
+          <span v-else-if="item.orderData.order_is_cancer">{{
+            $t('my_machine_order_cancer')
+          }}</span>
+          <span v-else-if="item.orderData.rent_success">{{
+            $t('my_machine_order_rent_success')
+          }}</span>
+
+          <!--   <span v-else-if="item.orderData.vocing_pay">{{$t('my_machine_order_vocing_pay')}}</span>  -->
+          <span
+            v-else-if="
+              item.orderData.pay_error && item.orderData.return_dbc === false
+            "
+            >{{ $t('my_machine_order_pay_error') }}</span
+          >
+          <span
+            v-else-if="item.orderData.pay_error && item.orderData.return_dbc"
+            >{{ $t('my_machine_order_return_dbc') }}</span
+          >
+          <span
+            v-else-if="
+              item.orderData.container_is_exist && !item.orderData.vocing_pay
+            "
+            >{{ $t('my_machine_order_vocing_machine_success') }}</span
+          >
+        </div>
+      </div>
+      <div class="pay-wrap">
+        <div class="rate-head" v-if="item.mcData.evaluation_score_average > 0">
+          <div class="flex right vCenter">
+            <el-rate
+              :value="item.mcData.evaluation_score_average / 2"
+            ></el-rate>
+            <!--     <span>{{item.mcData.evaluation_score_average}}{{$t('scores')}}</span> -->
+          </div>
+        </div>
+        <div>
+          <span class="td"
+            >{{ $t('gpu.payDBCs') }}：{{ item.orderData.dbc_total_count }}</span
+          >
+          <span class="td"
+            >{{ $t('my_machine_beused_time') }}：{{
+              parseInt(item.orderData.real_rent_time / 60)
+            }}{{ $t('my_machine_hour') }}{{ item.orderData.real_rent_time % 60
+            }}{{ $t('my_machine_min') }}</span
+          >
+          <span class="td"
+            >{{ $t('my_gpu_count') }}：{{ item.orderData.gpu_count }}</span
+          >
+        </div>
+
+        <div>
+          <span class="td"
+            >{{ $t('gpu.actualPrice') }}：{{
+              item.orderData.dbc_real_need_count
+            }}
+            DBC</span
+          >
+          <span v-if="item.orderData.have_continue_pay === false" class="td"
+            >{{ $t('gpu.gpuBilling') }}：$
+            {{ item.orderData.gpu_price_dollar }}/{{
+              $t('my_machine_hour')
+            }}</span
+          >
+        </div>
+        <div>
+          <span class="td"
+            >{{ $t('gpu.currentRemaining') }}：{{
+              item.orderData.dbc_total_count -
+                item.orderData.dbc_real_need_count
+            }}
+            DBC</span
+          >
+          <span v-if="item.orderData.have_continue_pay === false" class="td"
+            >{{ $t('gpu.payPrice') }}：$
+            {{ item.orderData.dbc_price.toFixed(4) }}</span
+          >
+        </div>
+      </div>
+      <div class="status-wrap">
+        <div class="flex status-title">
+          <div>
+            <span>{{ item.mcData.machine_id }}</span>
+            <span class="fs28">
+              <span class="cPrimaryColor"
+                >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$
+                {{ item.mcData.gpu_price_dollar }}/{{
+                  $t('my_machine_hour')
+                }}</span
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('my_machine_dbc_version') }}：
+              <a class="cPrimaryColor">{{ item.mcData.dbc_version }}</a>
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div class="td2">
+            <span class="fs28">
+              <a class="cPrimaryColor">{{ item.mcData.gpu_type }}</a>
+              <a class="cPrimaryColor">x{{ item.mcData.gpu_count }}</a>
+            </span>
+          </div>
+          <div class="td2">
+            <span class="fs28">
+              <a class="cPrimaryColor"
+                >{{ item.mcData.county }}{{ $t('list_china') }}</a
+              >
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_idle_gpus') }}:
+              <a class="cPrimaryColor">{{
+                item.mcData.gpu_count - item.mcData.gpu_be_used
+              }}</a>
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_length_of_available_time') }}：
+              <a class="cPrimaryColor"
+                >{{ Math.floor(item.mcData.length_of_available_time)
+                }}{{ $t('my_machine_hour') }}</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_total_time_be_used') }}：
+              <a class="cPrimaryColor">{{
+                $minsToHourMins(item.mcData.total_time_be_used)
+              }}</a>
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_total_rent_count') }}：
+              <a class="cPrimaryColor">{{ item.mcData.total_rent_count }}</a>
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_error_rent_count') }}：
+              <a class="cPrimaryColor">{{ item.mcData.error_rent_count }}</a>
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div v-if="item.mcData.tensor_cores" class="td">
+            <span class="fs16">
+              Tensor Cores：
+              <a class="cPrimaryColor">{{ item.mcData.tensor_cores }}</a>
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_cuda_version') }}：
+              <a class="cPrimaryColor">{{ item.mcData.cuda_version }}</a>
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_disk_space') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.disk_space / (1024 * 1024)) }}GB</a
+              >
+              <a class="cPrimaryColor"
+                >&nbsp;&nbsp;{{ item.mcData.disk_type }}</a
+              >
+            </span>
+          </div>
+          <div class="td3">
+            <span class="fs16">
+              {{ $t('list_cpu_type') }}：
+              <a class="cPrimaryColor">{{ item.mcData.cpu_type }}</a>
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div v-if="item.mcData.half_precision_tflops > 0" class="td">
+            <span class="fs16">
+              {{ $t('list_half_precision_tflops') }}：
+              <a class="cPrimaryColor"
+                >{{ item.mcData.half_precision_tflops }}TFLOPS</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_gpu_ram_size') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.gpu_ram_size / (1024 * 1024)) }}GB</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_disk_bandwidth') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.disk_bandwidth / 1024) }}MB/s</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_cpu_numbers') }}：
+              <a class="cPrimaryColor">{{ item.mcData.cpu_numbers }}</a>
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div v-if="item.mcData.single_precision_tflops > 0" class="td">
+            <span class="fs16">
+              {{ $t('list_single_precision_tflops') }}：
+              <a class="cPrimaryColor"
+                >{{ item.mcData.single_precision_tflops }}TFLOPS</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_gpu_ram_bandwidth') }}：
+              <a class="cPrimaryColor"
+                >{{
+                  parseInt(item.mcData.gpu_ram_bandwidth / (1024 * 1024))
+                }}GB/s</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_inet_up') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.inet_up / 1024) }}Mbps</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_ram_size') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.ram_size / (1024 * 1024)) }}GB</a
+              >
+            </span>
+          </div>
+        </div>
+        <div class="flex">
+          <div v-if="item.mcData.double_precision_tflops > 0" class="td">
+            <span class="fs16">
+              {{ $t('list_double_precision_tflops') }}：
+              <a class="cPrimaryColor"
+                >{{ item.mcData.double_precision_tflops }}TFLOPS</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_pcie_bandwidth') }}：
+              <a class="cPrimaryColor"
+                >{{
+                  parseInt(item.mcData.pcie_bandwidth / (1024 * 1024))
+                }}GB/s</a
+              >
+            </span>
+          </div>
+          <div class="td">
+            <span class="fs16">
+              {{ $t('list_inet_down') }}：
+              <a class="cPrimaryColor"
+                >{{ parseInt(item.mcData.inet_down / 1024) }}Mbps</a
+              >
+            </span>
+          </div>
+          <div class="td3">
+            <span class="fs16">
+              {{ $t('list_os') }}：
+              <a class="cPrimaryColor">{{ item.mcData.os }}</a>
+            </span>
+          </div>
+        </div>
+      </div>
+      <!--<div class="tools-head bd">
+        <div class="l-wrap">
+          <span class="tools-title small">{{$t('gpu.machineLoginInfo')}}：ssh -p 20049 root@116.85.24.172，{{$t('password')}}：xxxxx</span>
+        </div>
+      </div>-->
+      <div class="tools-head">
+        <div class="l-wrap">
+          <span
+            v-if="isShowRendSuccessMsg(item.orderData.milli_rent_success_time)"
+            >{{ $t('myMachine_rent_success_msg') }}</span
+          >
+          <span v-else-if="item.orderData.vocing === true">{{
+            $t('myMachine_is_pay_vocing')
+          }}</span>
+
+          <span
+            class="cRed"
+            v-else-if="
+              item.orderData.order_is_cancer === false &&
+                item.orderData.container_is_exist &&
+                item.orderData.wallet_address_dbchain === null
+            "
+            >{{ $t('myMachine_maybe_is_used') }}</span
+          >
+          <span
+            class="cRed"
+            v-else-if="
+              item.orderData.creating_container &&
+                !item.orderData.order_is_cancer
+            "
+            >{{ $t('myMachine_is_vocing_machine') }}</span
+          >
+          <span class="cRed" v-else-if="isPaying">{{
+            $t('myMachine_is_dbc_transfering')
+          }}</span>
+          <span class="cRed" v-else-if="local_pay_error && !isPaying">{{
+            $t('myMachine_is_transfer_error')
+          }}</span>
+          <span
+            class="cRed"
+            v-else-if="
+              item.orderData.vocing_pay &&
+                !item.orderData.order_is_cancer &&
+                !item.orderData.rent_success &&
+                !item.orderData.order_is_over &&
+                item.orderData.container_is_exist
+            "
+            >{{ $t('my_machine_order_vocing_pay') }}</span
+          >
+          <span
+            class="cRed"
+            v-else-if="
+              item.mcData.gpu_be_used === item.mcData.gpu_count &&
+                item.orderData.order_is_cancer === false &&
+                !item.orderData.rent_success &&
+                !item.orderData.order_is_over &&
+                !item.orderData.container_is_exist
+            "
+            >{{ $t('myMachine_maybe_is_used') }}</span
+          >
+        </div>
+        <div
+          v-if="
+            item.orderData.order_is_cancer === false &&
+              !(
+                item.orderData.return_dbc === true &&
+                item.orderData.pay_error === true
+              )
+          "
+          class="r-wrap"
+        >
+          <el-button
+            v-if="item.orderData.order_is_over"
+            plain
+            class="tool-btn"
+            size="mini"
+            style="width: 86px"
+            @click="openRateDlg(item)"
+            >{{ $t('gpu.rate') }}</el-button
+          >
+          <template v-else-if="item.orderData.rent_success">
+            <!--<el-button plain style="width: 86px" class="tool-btn" size="mini"
+                       @click="dlgReload_open = true">
+              {{$t('gpu.reload')}}
+            </el-button>-->
+            <el-button
+              plain
+              class="tool-btn"
+              style="width: 80px"
+              size="mini"
+              :loading="item.rentLoading"
+              @click="openContinuePay(item)"
+              >{{ $t('continue_pay') }}</el-button
+            >
+
+            <el-button
+              plain
+              class="tool-btn"
+              style="width: 110px"
+              size="mini"
+              @click="stopRent(item)"
+              >{{ $t('unsubscribe') }}</el-button
+            >
+          </template>
+          <el-button
+            v-else-if="
+              item.orderData.return_dbc === false && item.orderData.pay_error
+            "
+            class="tool-btn"
+            style="width: 86px"
+            plain
+            size="mini"
+            @click="openReturnDbc(item)"
+            >{{ $t('myMachine_return_dbc') }}</el-button
+          >
+          <template v-else-if="item.orderData.rent_success === false">
+            <el-button
+              v-if="
+                item.orderData.container_is_exist === true &&
+                  item.orderData.pay_error === false
+              "
+              :disabled="item.verifing === true || item.orderData.vocing_pay"
+              plain
+              :loading="isPaying"
+              class="tool-btn"
+              size="mini"
+              @click="payOrder(item)"
+              >{{ $t('myMachine_confirm_pay') }}</el-button
+            >
+            <el-button
+              v-if="
+                !item.orderData.vocing_pay && item.orderData.try_rent === false
+              "
+              :disabled="isPaying"
+              class="tool-btn"
+              size="mini"
+              plain
+              @click="cancelOrder(item)"
+              >{{ $t('myMachine_concer_order') }}</el-button
+            >
+          </template>
+        </div>
+      </div>
+    </div>
+    <!--    reload-dlg-->
+    <dlg-reload :open.sync="dlgReload_open"></dlg-reload>
+    <!--    increaseHD-dlg-->
+    <dlg-hd :open.sync="dlgHD_open"></dlg-hd>
+    <!--    bindMail-dlg-->
+    <dlg-mail
+      :open.sync="dlgMail_open"
+      :is-new-mail="isNewMail"
+      @binding="binding"
+      @fail="bindFail"
+    ></dlg-mail>
+    <!--    Unsubscribe-->
+    <dlg-unsubscribe
+      :item="curItem"
+      :open.sync="dlgUnsubscribe_open"
+      @success="stopRentSuccess"
+    ></dlg-unsubscribe>
+    <!--    rate-->
+    <dlg-rate
+      :open.sync="dlgRate_open"
+      :item="curItem"
+      @success="successRate"
+    ></dlg-rate>
+    <!--    return dbc-->
+    <dlg-return-dbc
+      :open.sync="dlgReturnDbc_open"
+      :item="curItem"
+      @success="returnSuccess"
+    ></dlg-return-dbc>
+    <dlg-continuepay
+      :open.sync="openContinueDlg"
+      :place-order-data="placeOrderData"
+      @confirm="createOrder"
+    ></dlg-continuepay>
+  </div>
+</template>
+
+<script>
+import cookie from 'js-cookie';
+import DlgReload from '@/components/machine/dlg_reload';
+import DlgHd from '@/components/machine/dlg_increaseHD';
+import DlgMail from '@/components/machine/dlg_bindMail';
+import DlgUnsubscribe from '@/components/machine/dlg_unsubscribe';
+import DlgRate from '@/components/machine/dlg_rate';
+import DlgReturnDbc from '@/components/machine/dlg_returnDbc';
+import DlgContinuepay from '@/components/machine/dlg_continuepay';
+import {
+  queryBindMail_rent,
+  continue_pay_get_dbc_price,
+  continue_pay_get_pay_dbc_count,
+  continue_pay_create_order,
+  continue_pay_place_order,
+  query_machine_by_wallet,
+  get_create_container_time,
+  get_dbchain_address,
+  get_all_order,
+  can_rent_this_machine,
+  pay,
+  get_cancer_code,
+  cancer_order,
+  binding_is_ok,
+  binding_is_ok_modify,
+  get_stop_code,
+  stop,
+  get_return_dbc_code,
+  request_return_dbc
+} from '@/api';
+import { getAccount, transfer } from '@/utlis';
+
+export default {
+  name: 'myMachine_unlock',
+  components: {
+    DlgReload,
+    DlgHd,
+    DlgMail,
+    DlgUnsubscribe,
+    DlgRate,
+    DlgReturnDbc,
+    DlgContinuepay
+  },
+  data() {
+    return {
+      rateValue: undefined,
+      dlgReload_open: false,
+      dlgHD_open: false,
+      dlgMail_open: false,
+      dlgUnsubscribe_open: false,
+      dlgRate_open: false,
+      dlgReturnDbc_open: false,
+      openContinueDlg: false,
+      isNewMail: false,
+      isBinding: false,
+      isBinded: false,
+      placeOrderData: undefined,
+      bindMail: '',
+      res_body: {
+        content: []
+      },
+      isPaying: false,
+      local_pay_error: false,
+      isPocing: false,
+      curItem: undefined,
+      isRateEdit: false,
+      si: undefined,
+      queryOrderListSi: undefined,
+      container_tips: ''
+    };
+  },
+  activated() {
+    // this.binding(isNewMail);
+    this.queryMail();
+    this.queryOrderList().then(res => {
+      if (res.status === 1) {
+        this.forceToPocMachine();
+      }
+      //  pocMachine();
+    });
+    this.queryOrderListSi = setInterval(() => {
+      if (this.isPaying !== true) {
+        this.queryOrderList();
+      }
+    }, 20000);
+  },
+  deactivated() {
+    if (this.queryOrderListSi) {
+      clearInterval(this.queryOrderListSi);
+    }
+    if (this.si) {
+      clearInterval(this.si);
+    }
+  },
+  computed: {
+    rentNumber() {
+      return this.res_body.content.filter(item => {
+        return item.orderData.rent_success;
+      }).length;
+    }
+  },
+  methods: {
+    pushContinuePayDetail(order_id, order_is_over) {
+      this.$router.push(
+        '/continuePayDetail?order_id=' +
+          order_id +
+          '&order_is_over=' +
+          order_is_over
+      );
+    },
+    createOrder(params) {
+      const loading = this.$loading();
+
+      continue_pay_create_order(params)
+        .then(res => {
+          if (res.status === 1) {
+            this.$message(this.$t('list_create_order_success'));
+            this.openContinueDlg = false;
+            this.$router.push(
+              '/continuePayDetail?order_id=' +
+                params.order_id +
+                '&order_is_over=' +
+                params.order_is_over
+            );
+          } else {
+            this.$message(res.msg);
+          }
+        })
+        .finally(() => {
+          loading.close();
+        });
+    },
+    // 打开弹窗
+    openContinuePay(item) {
+      item.rentLoading = true;
+      const user_name_platform = this.$t('website_name');
+      const language = this.$i18n.locale;
+      continue_pay_place_order({
+        order_id: item.orderData.order_id,
+
+        user_name_platform,
+        language
+      })
+        .then(res_1 => {
+          if (res_1.status === 1) {
+            this.placeOrderData = res_1.content;
+            // this.placeOrderData.dbc_price = -1;
+            return continue_pay_get_dbc_price({
+              continue_pay_order_id: this.placeOrderData.continue_pay_order_id,
+              user_name_platform,
+              language
+            });
+          } else {
+            this.$message({
+              showClose: true,
+              message: res_1.msg,
+              type: 'error'
+            });
+            return Promise.reject(res_1.msg);
+          }
+        })
+        .then(res_2 => {
+          if (res_2.status === 1) {
+            this.placeOrderData.dbc_price = res_2.content;
+            this.openContinueDlg = true;
+          } else {
+            this.$message({
+              showClose: true,
+              message: res_2.msg,
+              type: 'success'
+            });
+            return Promise.reject(res_2.msg);
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        })
+        .finally(() => {
+          item.rentLoading = false;
+        });
+    },
+    forceToPay() {
+      // console.log('调用强制支付')
+      // 判断如果有订单没有支付完成，强制支付
+      const order = this.res_body.content.find((item, index) => {
+        // console.log(index)
+        // console.log(item.orderData.creating_container)
+        // console.log(item.orderData.container_is_exist)
+        return (
+          !item.orderData.order_is_over &&
+          !item.orderData.order_is_cancer &&
+          !item.orderData.rent_success &&
+          !item.orderData.vocing_pay &&
+          (item.orderData.creating_container ||
+            item.orderData.container_is_exist)
+        );
+      });
+      if (order) {
+        this.payOrder(order);
+      }
+    },
+    isShowRendSuccessMsg(milli_rent_success_time) {
+      const minutes =
+        (new Date().getTime() - milli_rent_success_time) / 1000 / 60;
+      return minutes < 10;
+    },
+
+    forceToPocMachine() {
+      // pay before
+      const order = this.res_body.content.find((item, index) => {
+        // console.log(index)
+        // console.log(item.orderData.creating_container)
+        // console.log(item.orderData.container_is_exist)
+        return (
+          !item.orderData.order_is_over &&
+          !item.orderData.order_is_cancer &&
+          !item.orderData.rent_success &&
+          !item.orderData.vocing_pay &&
+          !item.orderData.pay_error &&
+          !item.orderData.container_is_exist
+        );
+      });
+      if (order) {
+        this.pocMachine(order);
+      }
+    },
+
+    forceToPocIsPayed() {
+      // pay before
+      const order = this.res_body.content.find((item, index) => {
+        // console.log(index)
+        // console.log(item.orderData.creating_container)
+        // console.log(item.orderData.container_is_exist)
+        return (
+          !item.orderData.order_is_over &&
+          !item.orderData.order_is_cancer &&
+          !item.orderData.rent_success &&
+          !item.orderData.vocing_pay &&
+          !item.orderData.pay_error &&
+          item.orderData.container_is_exist
+        );
+      });
+      if (order) {
+        this.pocIsPayed(order);
+      }
+    },
+    pocIsPayed(item) {
+      this.PocingPayed = true;
+      clearInterval(this.si);
+      //item.orderData.creating_container = true;
+      this.si = setInterval(() => {
+        //   if (item.orderData.isPocing) {
+        //     return;
+        //   }
+        const user_name_platform = this.$t('website_name');
+        const language = this.$i18n.locale;
+        return can_rent_this_machine({
+          order_id: item.orderData.order_id,
+          user_name_platform,
+          language
+        }).then(res => {
+          if (res.status === 1 && res.content) {
+            console.log(res.msg);
+            item.notice = '';
+            this.queryOrderList();
+            clearInterval(this.si);
+          } else if (res.status === 2) {
+            // item.orderData.creating_container = true;
+            this.queryOrderList();
+            return Promise.reject({
+              status: 2,
+              msg: '正在验证机器环境是否可用，请耐心等待，大概需要1-3分钟'
+            });
+          } else if (!res.content) {
+            this.queryOrderList();
+            clearInterval(this.si);
+            return Promise.reject({
+              status: -1,
+              msg: '机器可能已经被租用，请取消订单，重新租用其他机器'
+            });
+          } else {
+            this.queryOrderList();
+            clearInterval(this.si);
+            return Promise.reject({
+              status: -1,
+              msg: res.msg
+            });
+          }
+
+          if (item.orderData.order_is_cancer) {
+            clearInterval(this.si);
+          }
+        });
+      }, 5000);
+    },
+    pocMachine(item) {
+      this.isPocing = true;
+      clearInterval(this.si);
+      item.orderData.creating_container = true;
+      this.si = setInterval(() => {
+        //   if (item.orderData.isPocing) {
+        //     return;
+        //   }
+        const user_name_platform = this.$t('website_name');
+        const language = this.$i18n.locale;
+        return can_rent_this_machine({
+          order_id: item.orderData.order_id,
+          user_name_platform,
+          language
+        }).then(res => {
+          if (res.status === 1 && res.content) {
+            console.log(res.msg);
+            item.notice = '';
+            this.queryOrderList();
+            clearInterval(this.si);
+          } else if (res.status === 2) {
+            // item.orderData.creating_container = true;
+            this.queryOrderList();
+            return Promise.reject({
+              status: 2,
+              msg: '正在验证机器环境是否可用，请耐心等待，大概需要3分钟'
+            });
+          } else if (res.status == -1 && res.code == 10303) {
+            this.container_tips = res.msg;
+          } else if (!res.content) {
+            this.queryOrderList();
+            clearInterval(this.si);
+            return Promise.reject({
+              status: -1,
+              msg: '机器可能已经被租用，请取消订单，重新租用其他机器'
+            });
+          } else {
+            this.queryOrderList();
+            clearInterval(this.si);
+
+            return Promise.reject({
+              status: -1,
+              msg: res.msg
+            });
+          }
+
+          if (item.orderData.order_is_cancer) {
+            clearInterval(this.si);
+          }
+        });
+      }, 5000);
+    },
+    // pay
+    payOrder(item) {
+      //
+      get_create_container_time({
+        order_id: item.orderData.order_id,
+        user_name_platform,
+        language
+      }).then(res => {
+        if (res.status === 1) {
+          var dateDiff = new Date().getTime() - res.content; //70 * 1000 * 10; //时间差的毫秒数
+          if (dateDiff > 60 * 1000 * 10) {
+            this.$message({
+              showClose: true,
+              message: this.$t('pay_over_time'),
+
+              type: 'error'
+            });
+            reutrn;
+          }
+        }
+      });
+
+      clearInterval(this.si);
+      //    this.si = setInterval(() => {
+      //     this.queryOrderList();
+      ///      if (item.orderData.rent_success) {
+      //       clearInterval(this.si);
+      //       return;
+      //     } else if (item.orderData.pay_error) {
+      //      clearInterval(this.si);
+      //      return;
+      //    }
+      //   }, 5000);
+      const user_name_platform = this.$t('website_name');
+      const language = this.$i18n.locale;
+      get_dbchain_address({
+        order_id: item.orderData.order_id,
+        user_name_platform,
+        language
+      }).then(res => {
+        if (res.status === 1 && res.content) {
+          const amount =
+            item.orderData.dbc_total_count + item.orderData.code * 1;
+          this.$confirm(
+            this.$t('myMachine_no_double_pay'),
+            this.$t('myMachine_please_confirm_pay'),
+            {
+              confirmButtonText: this.$t('myMachine_confirm'),
+              cancelButtonText: this.$t('myMachine_cancer')
+            }
+          )
+            .then(({ value }) => {
+              this.isPaying = true;
+              this.local_pay_error = false;
+              return transfer({
+                toAddress: res.content,
+                amount
+              });
+            })
+            .then(res => {
+              if (res.status === 1) {
+                console.log('转账成功');
+                const txid = res.response.txid;
+
+                // pay after
+                this.isPaying = false;
+                item.orderData.vocing_pay = true;
+                const user_name_platform = this.$t('website_name');
+                const language = this.$i18n.locale;
+                // 支付后确认
+                this.si = setInterval(() => {
+                  return pay({
+                    order_id: item.orderData.order_id,
+                    dbc_hash: txid,
+                    user_name_platform,
+                    language
+                  })
+                    .then(res => {
+                      this.queryOrderList();
+                      if (res.status === 1) {
+                        clearInterval(this.si);
+
+                        item.orderData.vocing_pay = false;
+                      }
+                    })
+                    .catch(err => {
+                      if (err && err.status === -1) {
+                        console.log(err.msg);
+                        this.$message({
+                          showClose: true,
+                          message: err.msg,
+                          type: 'error'
+                        });
+                        clearInterval(this.si);
+                      } else if (err && err.status === -2) {
+                        console.log(err.msg);
+                        // clearInterval(this.si)
+                      } else if (err) {
+                        console.log('其他报错');
+                        console.log(err);
+                        clearInterval(this.si);
+                      }
+                    });
+                }, 5000);
+              } else {
+                this.isPaying = false;
+
+                clearInterval(this.si);
+                this.local_pay_error = true;
+                console.log('转账失败');
+              }
+            });
+        } else {
+          return Promise.reject({
+            status: -1,
+            msg: '机器可能已经被租用，请取消订单，重新租用其他机器'
+          });
+        }
+      });
+      // pay
+
+      //  }, 5000);
+    },
+    // cancel
+    cancelOrder(item) {
+      get_cancer_code({
+        order_id: item.orderData.order_id,
+        user_name_platform: this.$t('website_name'),
+        language: this.$i18n.locale
+      })
+        .then(res => {
+          if (res.status === 1) {
+            this.$prompt(
+              this.$t('myMachine_code_send'),
+              this.$t('myMachine_cancer_order'),
+              {
+                confirmButtonText: this.$t('myMachine_confirm'),
+                cancelButtonText: this.$t('myMachine_cancer')
+              }
+            )
+              .then(({ value }) => {
+                return cancer_order({
+                  order_id: item.orderData.order_id,
+                  cancer_code: value,
+                  user_name_platform: this.$t('website_name'),
+                  language: this.$i18n.locale
+                });
+              })
+              .then(res => {
+                if (res.status === 1) {
+                  this.$message({
+                    showClose: true,
+                    message: res.msg,
+                    type: 'success'
+                  });
+                  this.queryOrderList();
+                } else {
+                  this.$message({
+                    showClose: true,
+                    message: res.msg,
+                    type: 'error'
+                  });
+                }
+              })
+              .catch(err => {
+                if (err) {
+                  console.log(err);
+                }
+              });
+          } else {
+            this.$message({
+              showClose: true,
+              message: res.msg,
+              type: 'error'
+            });
+            return Promise.reject();
+          }
+        })
+        .then(res => {
+          if (res.status === 1) {
+            this.$message({
+              showClose: true,
+              message: res.msg,
+              type: 'success'
+            });
+          }
+        })
+        .finally(() => {});
+    },
+    // get Order List
+    queryOrderList() {
+      if (!getAccount()) {
+        this.$router.push(`/openWallet/${type}`);
+        return;
+      }
+      const wallet_address_user = getAccount().address;
+      const user_name_platform = this.$t('website_name');
+      const language = this.$i18n.locale;
+      const promiseList = [
+        query_machine_by_wallet({
+          wallet_address_user,
+          user_name_platform,
+          language
+        }),
+        get_all_order({
+          wallet_address_user,
+          user_name_platform,
+          language
+        })
+      ];
+      return Promise.all(promiseList)
+        .then(([res_1, res_2]) => {
+          this.res_body.content = [];
+          if (res_2.content) {
+            res_2.content.forEach(item => {
+              const mcItem = res_1.content.find(
+                mc => item.machine_id === mc.machine_id
+              );
+              if (mcItem) {
+                this.res_body.content.push({
+                  verifing: false,
+                  notice: '',
+                  orderData: item,
+                  mcData: mcItem
+                });
+              }
+            });
+          }
+          return Promise.resolve({
+            status: 1
+          });
+        })
+        .catch(err => {
+          if (err) {
+            console.log(err);
+          }
+        });
+    },
+    pushDetail(machine_id) {
+      this.$router.push('/machineDetail?machine_id=' + machine_id);
+    },
+    openDlgMail(isNewMail) {
+      this.isNewMail = isNewMail;
+      this.dlgMail_open = true;
+    },
+    //
+    queryMail() {
+      this.bindMail = cookie.get('mail');
+      const address = getAccount().address;
+      const user_name_platform = this.$t('website_name');
+      const language = this.$i18n.locale;
+      queryBindMail_rent({
+        wallet_address: address,
+        user_name_platform,
+        language
+      }).then(res => {
+        if (res.status === 1) {
+          this.bindMail = res.content;
+          cookie.set('mail', res.content);
+        } else {
+          binding_is_ok({
+            wallet_address: address,
+            user_name_platform,
+            language
+          }).then(ren => {
+            if (ren.status === 2) {
+              this.isBinding = true;
+            }
+          });
+          binding_is_ok_modify({
+            wallet_address: address,
+            user_name_platform,
+            language
+          }).then(ren => {
+            if (ren.status === 2) {
+              this.isBinding = true;
+            }
+          });
+        }
+      });
+    },
+    binding(isNewMail) {
+      this.isBinding = true;
+      let binding = true;
+      const user_name_platform = this.$t('website_name');
+      const language = this.$i18n.locale;
+      const si = setInterval(async () => {
+        if (binding) {
+          if (isNewMail) {
+            binding = false;
+            const res = await binding_is_ok({
+              wallet_address: getAccount().address,
+              user_name_platform,
+              language
+            });
+            if (res.status === 1) {
+              clearInterval(si);
+              this.bindSuccess();
+            }
+          } else {
+            binding = false;
+            const res = await binding_is_ok_modify({
+              wallet_address: getAccount().address,
+              user_name_platform,
+              language
+            });
+            if (res.status === 1) {
+              clearInterval(si);
+              this.bindSuccess();
+            }
+          }
+        }
+        binding = true;
+      }, 10000);
+    },
+    // bind fail
+    bindFail() {
+      this.isBinding = false;
+    },
+    // bind success
+    bindSuccess() {
+      this.isBinding = false;
+      this.queryMail();
+    },
+    // stop rent
+    stopRent(item) {
+      this.dlgUnsubscribe_open = true;
+      this.curItem = item;
+    },
+    stopRentSuccess() {
+      this.queryOrderList();
+    },
+    openRateDlg(item) {
+      this.curItem = item;
+      this.dlgRate_open = true;
+    },
+    successRate() {
+      this.queryOrderList();
+    },
+    // 退币
+    openReturnDbc(item) {
+      this.curItem = item;
+      this.dlgReturnDbc_open = true;
+    },
+    returnSuccess() {
+      this.queryOrderList();
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+@import '~@/assets/css/variables.scss';
+
+.title {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+  line-height: 20px;
+
+  .bindInfo {
+    display: inline-block;
+    font-size: 12px;
+    min-height: 40px;
+    color: $textColor_def;
+    vertical-align: middle;
+  }
+
+  .bindingInfo {
+    font-size: 12px;
+    color: $textColor_def;
+    vertical-align: middle;
+  }
+
+  .iconwenhao {
+    color: $primaryColor;
+  }
+}
+
+.border-content {
+  border: 1px solid #979797;
+  margin-bottom: 20px;
+}
+
+.rate-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tools-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+
+  &.bd {
+    border-bottom: 1px solid #e1e6ec;
+  }
+
+  .tools-title {
+    font-size: 16px;
+    color: #050d68;
+
+    &.small {
+      font-size: 14px;
+      color: #333;
+    }
+  }
+
+  .tool-btn {
+    font-size: 14px;
+
+    &.blue {
+      border-color: $primaryColor;
+      color: $primaryColor;
+    }
+  }
+
+  .cGray {
+    padding-left: 44px;
+  }
+}
+
+.pay-wrap {
+  padding: 10px 20px;
+  border-top: 1px solid #e1e6ec;
+  font-size: 14px;
+  line-height: 28px;
+  color: #666;
+  background-color: #f6f9fc;
+
+  .td {
+    display: inline-block;
+    width: 33.3%;
+  }
+}
+
+.status-wrap {
+  padding: 15px 20px 12px;
+  border-top: 1px solid #e1e6ec;
+  border-bottom: 1px solid #e1e6ec;
+  color: #666;
+  font-size: 14px;
+
+  .status-title {
+    padding-bottom: 17px;
+  }
+
+  .flex {
+    display: flex;
+    align-items: flex-start;
+    padding: 5px 0;
+
+    &.status-title {
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .td3 {
+      width: 40%;
+      line-height: 24px;
+
+      .cPrimaryColor {
+        font-size: 12px;
+
+        &.fs16 {
+          font-size: 28px;
+        }
+      }
+    }
+
+    .td2 {
+      width: 50%;
+
+      line-height: 24px;
+
+      .cPrimaryColor {
+        font-size: 50px;
+
+        &.fs28 {
+          font-size: 32px;
+        }
+      }
+    }
+
+    .td {
+      width: 20%;
+      line-height: 24px;
+
+      .cPrimaryColor {
+        font-size: 12px;
+
+        &.fs16 {
+          font-size: 16px;
+        }
+      }
+
+      .upSpeed,
+      .downSpeed {
+        display: inline-block;
+        height: 16px;
+        line-height: 16px;
+        margin-right: 8px;
+        border: 1px dashed #666;
+        font-size: 14px;
+      }
+
+      .downSpeed {
+        transform: rotateZ(180deg);
+      }
+    }
+  }
+
+  /*.flex {
+            display: flex;
+            padding: 5px 0;
+
+            .td {
+              width: 20%;
+              line-height: 24px;
+
+              .bold {
+                font-weight: 700;
+              }
+
+              .upSpeed,
+              .downSpeed {
+                display: inline-block;
+                height: 16px;
+                line-height: 16px;
+                margin-right: 8px;
+                border: 1px dashed #666;
+                font-size: 14px;
+              }
+
+              .downSpeed {
+                transform: rotateZ(180deg);
+              }
+            }
+          }*/
+}
+</style>
