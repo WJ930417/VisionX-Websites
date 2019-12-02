@@ -59,7 +59,7 @@ section {
   width: 100%;
 }
 
-.navbar-fixed-top.scrolled {
+.navbar-change.scrolled {
   background-color: black !important;
   transition: background-color 200ms linear;
 }
