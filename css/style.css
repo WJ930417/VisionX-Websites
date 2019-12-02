@@ -8,13 +8,17 @@ body {
   font-family: 'Raleway', sans-serif;
 }
 
+section {
+  overflow: hidden;
+}
+
 .bg-dark-self {
   background: var(--dark-color);
 }
 
 .box-dark {
   border: solid 1px black;
-  padding: 20px 20px;
+  padding: 20px;
   margin: 20px;
 }
 
@@ -53,6 +57,11 @@ body {
 .navbar {
   z-index: 9;
   width: 100%;
+}
+
+.navbar-fixed-top.scrolled {
+  background-color: black !important;
+  transition: background-color 200ms linear;
 }
 
 .navbar-brand {
@@ -115,6 +124,11 @@ body {
   letter-spacing: 5px;
 }
 
+.carousel-caption .btn {
+  padding: 10px 20px;
+  font-size: 20px;
+}
+
 /* change carousel size */
 .carousel-item {
   height: 100vh;
@@ -126,23 +140,33 @@ body {
   background-size: cover;
 }
 
+.carousel-caption iframe {
+  width: 560px;
+  height: 315px;
+}
 /* social */
-.social .fab,
-.social.fas {
-  padding: 20px;
+ul.social .fab,
+ul.social .fas {
   font-size: 50px;
   width: 50px;
-  text-align: center;
   text-decoration: none;
+  padding: 20px;
+  text-align: center;
   margin: 5px 10px;
   line-height: 0px;
 }
 
-.social a {
-  text-decoration: none;
+ul.social li {
+  display: inline-block;
 }
-.social .fab:hover,
-.social .fas:hover {
+
+ul.social {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul.social .fab:hover,
+ul.social .fas:hover {
   color: white;
 }
 
@@ -245,22 +269,25 @@ body {
   background-attachment: fixed;
   color: white;
 }
-.social-footer .fab,
-.social-footer .fas {
-  padding: 20px;
-  font-size: 40px;
-  width: 40px;
-  text-align: center;
-  text-decoration: none;
-  line-height: 0px;
-}
 
-.social-footer a {
+ul.social-footer .fab,
+ul.social-footer .fas {
+  font-size: 30px;
+  width: 35px;
   text-decoration: none;
 }
 
-.social-footer .fab:hover,
-.social-footer .fas:hover {
+ul.social-footer li {
+  display: inline-block;
+}
+
+ul.social-footer {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul.social-footer .fab:hover,
+ul.social-footer .fas:hover {
   color: white;
 }
 
@@ -278,15 +305,15 @@ body {
   left: 0;
   right: 0;
   width: 100%;
-  height: 70%;
+  height: 60%;
   opacity: 0;
   background-color: #111111ce;
+  overflow: hidden;
 }
 .overlay:hover {
   padding: 15px 30px;
   opacity: 1;
   color: white;
-  overflow: auto;
 }
 
 .teams .container .col-sm {
@@ -471,4 +498,69 @@ ul.social_section_1info .fab:hover {
 
 .temp-btm p {
   color: #566773;
+}
+
+/* mobile */
+@media (max-width: 576px) {
+  .carousel-caption h1 {
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    font-size: 40px;
+  }
+  .carousel-caption .heading-long {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 30px;
+  }
+  .carousel-caption h2 {
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    font-size: 20px;
+  }
+  .carousel-caption h4 {
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 15px;
+  }
+  .carousel-caption iframe {
+    width: 250px;
+    height: 200px;
+  }
+
+  .carousel-caption .btn {
+    padding: 10px 10px;
+    font-size: 15px;
+  }
+
+  ul.social .fab,
+  ul.social .fas {
+    padding: 0px;
+    font-size: 30px;
+    width: 50px;
+    text-align: center;
+    text-decoration: none;
+    margin: 15px 0px;
+    line-height: 5px;
+  }
+
+  ul.social-footer .fab,
+  ul.social-footer .fas {
+    padding: 5px;
+    font-size: 30px;
+    width: 30px;
+    text-align: center;
+    text-decoration: none;
+    line-height: 0px;
+  }
+
+  ul.social-footer {
+    text-align: center;
+  }
+
+  .advantage_left {
+    text-align: center;
+    padding: 5em 2em;
+    box-sizing: border-box;
+    /* box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.075); */
+  }
 }
