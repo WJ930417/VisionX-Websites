@@ -63,6 +63,9 @@ section {
   background-color: black !important;
   transition: background-color 200ms linear;
 }
+.bg-black {
+  background: black;
+}
 
 .navbar-brand {
   font-size: 25px;
