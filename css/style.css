@@ -79,12 +79,13 @@ section {
 
 .navbar-dark .navbar-nav .nav-link {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
   color: #fff;
-  letter-spacing: 1px;
+  letter-spacing: 0px;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+  padding-top: 10px;
 }
 
 .navbar-dark .navbar-nav .nav-link:hover,
@@ -522,7 +523,7 @@ ul.social_section_1info .fab:hover {
   }
   .carousel-caption h4 {
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 1px;
     font-size: 15px;
   }
   .carousel-caption iframe {
@@ -539,7 +540,7 @@ ul.social_section_1info .fab:hover {
   ul.social .fas {
     padding: 0px;
     font-size: 30px;
-    width: 50px;
+    width: 45px;
     text-align: center;
     text-decoration: none;
     margin: 15px 0px;
@@ -549,10 +550,11 @@ ul.social_section_1info .fab:hover {
   ul.social-footer .fab,
   ul.social-footer .fas {
     padding: 5px;
-    font-size: 30px;
-    width: 30px;
+    font-size: 25px;
+    width: 25px;
     text-align: center;
     text-decoration: none;
+    margin: 15px 0px;
     line-height: 0px;
   }
 
